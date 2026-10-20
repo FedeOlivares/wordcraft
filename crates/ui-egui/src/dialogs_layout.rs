@@ -442,6 +442,12 @@ pub const LANGUAGES: [(&str, &str); 36] = [
     ("zh-TW", "Chinese (Traditional)"),
     ("ko-KR", "Korean"),
     ("id-ID", "Indonesian"),
+    ("bg-BG", "Bulgarian"),
+    ("ro-RO", "Romanian"),
+    ("sl-SI", "Slovenian"),
+    ("sq-AL", "Albanian"),
+    ("lt-LT", "Lithuanian"),
+    ("bs-BA", "Bosnian"),
     ("ar-SA", "Arabic"),
     ("he-IL", "Hebrew"),
 ];

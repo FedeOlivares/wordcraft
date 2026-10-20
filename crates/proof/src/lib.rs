@@ -13,7 +13,8 @@
 //!   (diacritics, `ż`/`rz`, `u`/`ó`, missing spaces), and Polish grammar rules with Polish
 //!   messages.
 //! - **Bulgarian** ([`ProofLang::Bg`], module [`bg`]): hyphenation by the Bulgarian syllable
-//!   rules; no spelling or grammar marks yet.
+//!   rules, and spelling against the installed Hunspell `bg_BG` dictionary ([`generic`]); no
+//!   grammar rules.
 //! - **Portuguese** ([`ProofLang::Pt`], module [`pt`]): spelling against the Hunspell `pt_BR`
 //!   dictionary installed on the system (VERO and friends; not bundled), suggestions tuned for
 //!   Portuguese (missing accents, `seje`/`seja` confusions, missing spaces), conservative
@@ -36,6 +37,10 @@
 //!   messages. Hyphenation uses the existing English fallback.
 //! - **German** ([`ProofLang::De`]): hyphenation by `hyph-utf8`'s German patterns (reformed
 //!   spelling, MIT); no spelling or grammar marks yet.
+//! - **Romanian, Slovenian, Albanian, Lithuanian and Bosnian** ([`ProofLang::Ro`],
+//!   [`ProofLang::Sl`], [`ProofLang::Sq`], [`ProofLang::Lt`], [`ProofLang::Bs`], module
+//!   [`generic`]): spelling against the installed Hunspell dictionary (not bundled) with
+//!   dictionary-driven suggestions; no grammar rules, English fallback hyphenation.
 //! - **Other languages** ([`ProofLang::Other`]): no spelling or grammar marks, like Word without
 //!   the language's proofing tools.
 //! - **Hyphenation** ([`hyphen`]): dictionary, Liang patterns (English, Polish, Portuguese,
@@ -49,6 +54,7 @@ pub mod bg;
 pub mod cs;
 pub mod dict;
 pub mod en_variants;
+pub mod generic;
 pub mod hr;
 pub mod hunspell;
 pub mod hyphen;
@@ -156,6 +162,7 @@ pub fn set_dictionaries_folder(dir: Option<std::path::PathBuf>) {
     ru::reload_dictionary();
     cs::reload_dictionary();
     id::reload_dictionary();
+    generic::reload_dictionaries();
     DICTIONARY_GENERATION.fetch_add(1, Ordering::Relaxed);
 }
 
@@ -172,6 +179,9 @@ pub fn installed_dictionaries() -> Vec<(ProofLang, Option<std::path::PathBuf>)> 
         (ProofLang::Cs, cs::installed_path()),
         (ProofLang::Id, id::installed_path()),
     ]
+    .into_iter()
+    .chain(generic::LANGUAGES.iter().map(|l| (l.lang, generic::installed_path(l.lang))))
+    .collect()
 }
 
 /// Why the dictionary found for `lang` failed to load (unsupported encoding, too large, a parse
@@ -185,7 +195,7 @@ pub fn dictionary_load_error(lang: ProofLang) -> Option<String> {
         ProofLang::Hr => "hr_HR",
         ProofLang::Tr => "tr_TR",
         ProofLang::Id => "id_ID",
-        _ => return None,
+        l => generic::language(l)?.names[0],
     };
     hunspell::load_error(key).map(|(_, reason)| reason)
 }
@@ -704,7 +714,7 @@ fn spelling_issue(text: &str, a: usize, b: usize, lang: ProofLang, opts: &Option
         ProofLang::Ru => "Возможна орфографическая ошибка",
         ProofLang::Cs => "Možná pravopisná chyba",
         ProofLang::Id => "Kemungkinan salah eja",
-        _ => "Possible spelling mistake",
+        l => generic::language(l).map_or("Possible spelling mistake", |g| g.message),
     };
     Some(Issue { start: a, end: b, kind: IssueKind::Spelling, message: message.into(), suggestions: Vec::new(), lang })
 }
@@ -726,7 +736,10 @@ pub fn is_correct_in_with(word: &str, lang: ProofLang, opts: &Options) -> bool {
         ProofLang::Ru => accepted_by_options(word, opts) || ru::is_correct(word),
         ProofLang::Cs => accepted_by_options(word, opts) || cs::is_correct(word),
         ProofLang::Id => accepted_by_options(word, opts) || id::is_correct(word),
-        ProofLang::Bg | ProofLang::De | ProofLang::Other => true,
+        ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs => {
+            accepted_by_options(word, opts) || generic::is_correct(lang, word)
+        }
+        ProofLang::De | ProofLang::Other => true,
     }
 }
 
@@ -742,7 +755,8 @@ pub fn suggest_in(word: &str, max: usize, lang: ProofLang) -> Vec<String> {
         ProofLang::Ru => ru::suggest(word, max),
         ProofLang::Cs => cs::suggest(word, max),
         ProofLang::Id => id::suggest(word, max),
-        ProofLang::Bg | ProofLang::De | ProofLang::Other => Vec::new(),
+        ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs => generic::suggest(lang, word, max),
+        ProofLang::De | ProofLang::Other => Vec::new(),
     }
 }
 
@@ -768,7 +782,8 @@ fn grammar_in(text: &str, lang: ProofLang, capital_first: bool) -> Vec<Issue> {
         // Czech has no sentence-capital rule, so a list item needs no exception.
         ProofLang::Cs => cs::grammar::check(text),
         ProofLang::Id => id::grammar::check(text),
-        ProofLang::Bg | ProofLang::De | ProofLang::Other => Vec::new(),
+        // Spelled with a dictionary alone: no grammar rules.
+        ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs | ProofLang::De | ProofLang::Other => Vec::new(),
     }
 }
 
@@ -986,6 +1001,7 @@ mod tests {
             ("ru_RU", ru::test_dict::AFF, ru::test_dict::DIC),
             ("cs_CZ", cs::test_dict::AFF, cs::test_dict::DIC),
             ("id_ID", id::test_dict::AFF, id::test_dict::DIC),
+            ("ro_RO", generic::test_dict::AFF, generic::test_dict::DIC),
         ] {
             std::fs::write(dir.join(format!("{name}.aff")), aff).unwrap();
             std::fs::write(dir.join(format!("{name}.dic")), dic).unwrap();
@@ -998,10 +1014,14 @@ mod tests {
         let before = dictionary_generation();
         set_dictionaries_folder(Some(dir.clone()));
         assert!(dictionary_generation() > before, "cached checks are dropped");
-        // Turkish has no test dictionary to put in the folder; Indonesian is listed after it.
+        // Turkish has no test dictionary to put in the folder; Indonesian is listed after it,
+        // then the languages spelled with a dictionary alone.
         let found = installed_dictionaries();
         assert_eq!(found.get(4).map(|(lang, _)| *lang), Some(ProofLang::Tr));
-        assert_eq!(found.last(), Some(&(ProofLang::Id, Some(dir.join("id_ID.dic")))));
+        assert_eq!(found.get(5), Some(&(ProofLang::Id, Some(dir.join("id_ID.dic")))));
+        let rest: Vec<ProofLang> = found[6..].iter().map(|(l, _)| *l).collect();
+        assert_eq!(rest, generic::LANGUAGES.iter().map(|l| l.lang).collect::<Vec<_>>());
+        assert!(found.contains(&(ProofLang::Ro, Some(dir.join("ro_RO.dic")))));
         assert_eq!(
             found[..4],
             [
@@ -1563,7 +1583,7 @@ mod tests {
         for l in [None, Some(""), Some("  "), Some("en"), Some("en-US"), Some("en-GB"), Some("EN-us"), Some("en_US")] {
             assert!(has_dictionary(l), "{l:?}");
         }
-        for l in [Some("lt-LT"), Some("fr-FR"), Some("de"), Some("uk"), Some("es"), Some("-US"), Some("e")] {
+        for l in [Some("mk-MK"), Some("fr-FR"), Some("de"), Some("uk"), Some("es"), Some("-US"), Some("e")] {
             assert!(!has_dictionary(l), "{l:?}");
         }
         // The gate follows the dictionaries, not English: every proofed language is proofed.
