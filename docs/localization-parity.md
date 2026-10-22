@@ -31,7 +31,7 @@ native-speaker review (human).
 - Pending PRs: Norwegian Bokmål (#208) and Nynorsk (#210), Hebrew with RTL (#20).
 - **Proofing: English, Polish, Portuguese, Italian, Croatian, Turkish, Russian, Czech and Indonesian**, plus spelling alone for Bulgarian, Romanian, Slovenian, Albanian, Lithuanian and Bosnian, chosen per run from its language (`w:lang`, resolved through
   the styles; Review › Language and the status bar set it: a short list, plus Set Proofing
-  Language… for any of 36 languages and Set As Default for the document and future blank documents). Languages without proofing tools get
+  Language… for any of 42 languages and Set As Default for the document and future blank documents). Languages without proofing tools get
   the styles; Review › Language and the status bar set it). Languages without proofing tools get
   no spelling or grammar marks (as in Word without the language's tools) instead of being flagged
   as English. Detail in [Proofing per language](#proofing-per-language).

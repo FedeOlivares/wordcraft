@@ -783,7 +783,9 @@ fn grammar_in(text: &str, lang: ProofLang, capital_first: bool) -> Vec<Issue> {
         ProofLang::Cs => cs::grammar::check(text),
         ProofLang::Id => id::grammar::check(text),
         // Spelled with a dictionary alone: no grammar rules.
-        ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs | ProofLang::De | ProofLang::Other => Vec::new(),
+        ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs | ProofLang::De | ProofLang::Other => {
+            Vec::new()
+        }
     }
 }
 
@@ -1014,12 +1016,12 @@ mod tests {
         let before = dictionary_generation();
         set_dictionaries_folder(Some(dir.clone()));
         assert!(dictionary_generation() > before, "cached checks are dropped");
-        // Turkish has no test dictionary to put in the folder; Indonesian is listed after it,
-        // then the languages spelled with a dictionary alone.
+        // Turkish has no test dictionary to put in the folder; Russian, Czech and Indonesian are
+        // listed after it, then the languages spelled with a dictionary alone.
         let found = installed_dictionaries();
         assert_eq!(found.get(4).map(|(lang, _)| *lang), Some(ProofLang::Tr));
-        assert_eq!(found.get(5), Some(&(ProofLang::Id, Some(dir.join("id_ID.dic")))));
-        let rest: Vec<ProofLang> = found[6..].iter().map(|(l, _)| *l).collect();
+        assert_eq!(found.get(7), Some(&(ProofLang::Id, Some(dir.join("id_ID.dic")))));
+        let rest: Vec<ProofLang> = found[8..].iter().map(|(l, _)| *l).collect();
         assert_eq!(rest, generic::LANGUAGES.iter().map(|l| l.lang).collect::<Vec<_>>());
         assert!(found.contains(&(ProofLang::Ro, Some(dir.join("ro_RO.dic")))));
         assert_eq!(
