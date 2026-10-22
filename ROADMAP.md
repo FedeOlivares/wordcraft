@@ -136,6 +136,7 @@ Ranked, to beta (detail and remaining milestones in [docs/roadmap.md](docs/roadm
 
 ## Progress log
 
+- 2026-10-22: Proofing robustness (security audit): a hostile Hunspell `.aff` with thousands of self-continuing suffix rules no longer makes each spell check walk every rule from every rule (6 s → <1 ms a word, part of #3613), its forms are bounded, and its suffix index builds in linear time; dictionary reads are bounded on the open file (Turkish included) and the hyphenation dictionary inflates under a limit (#3661); Russian hyphenation and hyphenated output are linear in word length (#3657); Turkish suggestions and lookups have a word-length cap (#3625). Spelling and hyphenation of normal words are unchanged.
 - 2026-10-22: Headers and footers: while editing the header, a single click in the footer edits the footer with the caret where clicked (and the reverse, and another page's own header or footer). The click went to the header being edited and the view scrolled back up to it, so a double-click on the footer rarely landed unless both were on screen.
 - 2026-10-21: Bullets and Numbering toggle off style-inherited lists at their effective level, including basedOn chains and numbered ListParagraph styles; other paragraphs and list definitions stay unchanged (related to #3459).
 
@@ -572,6 +573,7 @@ Footer page-table height and body wrapping are corrected. Other pagination gaps 
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-22 | trivial | Progress log: proofing robustness — affix rule walks, bounded dictionary reads, linear Russian hyphenation, Turkish word cap (#3613 part, #3661, #3657, #3625) |
 | 2026-10-22 | trivial | Progress log: a click in the footer while editing the header moves there |
 | 2026-10-18 | trivial | Explicit New/Open is not interrupted by startup recovery discovery; older copies stay available and Recover follows the interface theme. |
 | 2026-10-17 | trivial | Progress log: Home › Underline drop-down (#2738) |

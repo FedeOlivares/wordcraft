@@ -28,6 +28,8 @@ Document renaming: desktop renaming requires a filesystem that supports hard lin
 
 Comment command safety (#1690, finding 3): Delete, Resolve, Reply and Edit reject explicit fractional, negative or wrong-type IDs before editing, rather than truncating floats or using the caret. Synthetic tests cover refusal without document or history changes, valid operations with undo/redo and repeated DOCX saves. This narrows the data-path risks in gap #3; the other audit findings and broader stability gate are outside this change.
 
+Proofing robustness (security audit, #3613 part, #3661, #3657, #3625): installed Hunspell dictionaries with thousands of self-continuing rules check each word in linear time and list a bounded number of forms; dictionary files are read with a bounded read (Turkish included) and the hyphenation dictionary inflates under a 64 MiB limit; Russian hyphenation and Turkish suggestions no longer grow with the square of the word's length. This narrows the freeze risks in gap #3; distinct-strip rule chains and proofing off the UI thread remain (#3613).
+
 Font-menu reliability: clearing a query with no matches now shows the recent section from its first row, including its heading, in a scrollable list. Fixed synthetic-family widget and full-ribbon tests cover this case and matching-query controls (#2068).
 
 Additive paragraph spacing retains the full before-space after a section page break; ordinary overlapping spacing is unchanged. Other pagination gaps remain open.
@@ -125,6 +127,7 @@ Footer page-table height and body wrapping are corrected. Other pagination gaps 
 
 | Date | Change | Summary |
 |---|---|---|
+| 2026-10-22 | trivial | Gap 3: proofing robustness — linear affix rule walks, bounded dictionary reads, linear Russian hyphenation, Turkish word cap (#3613 part, #3661, #3657, #3625); readiness estimates unchanged |
 | 2026-10-18 | trivial | Explicit New/Open is not interrupted by startup recovery discovery; older copies stay available and Recover follows the interface theme. |
 | 2026-10-21 | trivial | Bullets and Numbering toggle off style-inherited lists at their effective level, including basedOn chains and numbered ListParagraph styles; other paragraphs and list definitions stay unchanged (related to #3459) |
 | 2026-10-21 | trivial | #3172: the ribbon's font name and size boxes, and the dropdown arrows beside them, say what they are to a screen reader |
