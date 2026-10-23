@@ -50,7 +50,7 @@ jobs:
           printf 'key=%s\n' "$PROJECT_KEY" >>"$GITHUB_OUTPUT"
       - name: Check out craft-fonts
         if: steps.token.outputs.available == 'true'
-        uses: storytold/craft-common-actions/actions/checkout-craft-fonts@main
+        uses: storytold/craft-common-actions/actions/checkout-craft-fonts@9e42334399655e6838f234c912d29c0697cad477
         with:
           ref: ""
       - name: Free disk space
@@ -59,7 +59,7 @@ jobs:
         run: sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL
       - name: Install Linux build dependencies
         if: steps.token.outputs.available == 'true' && hashFiles('Cargo.toml') != ''
-        uses: storytold/craft-common-actions/actions/install-apt-packages@main
+        uses: storytold/craft-common-actions/actions/install-apt-packages@9e42334399655e6838f234c912d29c0697cad477
         with:
           packages: >-
             pkg-config libxkbcommon-dev libwayland-dev libx11-dev libxcursor-dev libxrandr-dev
