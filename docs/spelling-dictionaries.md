@@ -5,6 +5,11 @@
 English spelling works out of the box. Polish, Russian, Portuguese, Czech, Italian, Croatian,
 Turkish, Indonesian and Spanish spelling use a standard **Hunspell** dictionary (an `.aff` and a `.dic` file) that
 WordCraft reads at runtime. These dictionaries are not bundled: they are large, and several are
+> **Last reviewed:** 2026-10-16 · **Last updated:** 2026-10-20 · **Change:** minor (Bulgarian, Romanian, Slovenian, Albanian, Lithuanian and Bosnian dictionaries; previously trivial: ISO 8859-1 dictionaries are read, #2824; previously major: first version)
+
+English spelling works out of the box. Polish, Russian, Portuguese, Czech, Italian, Croatian,
+Turkish, Indonesian, Bulgarian, Romanian, Slovenian, Albanian, Lithuanian and Bosnian spelling use
+a standard **Hunspell** dictionary (an `.aff` and a `.dic` file) that WordCraft reads at runtime. These dictionaries are not bundled: they are large, and several are
 GPL or LGPL licensed. Without one, the language isn't checked. The status bar then shows the
 language with **(no dictionary)**, for example *Português (Brasil) (no dictionary)*.
 
@@ -33,6 +38,13 @@ WordCraft looks for the first of these file names (each name means a `<name>.aff
 | Spanish (Mexico) | `es_MX`, `es-MX`, `es_419`, `es-419`, `es_ANY`, `es` | LibreOffice `dict-es` (RLA-ES) |
 | Spanish (Latin America, and the other Spanish regions of the Americas) | `es_419`, `es-419`, `es_ANY`, `es`, `es_US`, `es_MX`, `es_AR`, `es-AR` | LibreOffice `dict-es` (RLA-ES) |
 | Spanish (Uruguay) | `es_UY`, `es-UY`, `es_AR`, `es-AR`, `es_419`, `es-419`, `es_ANY`, `es` | LibreOffice `dict-es` (RLA-ES) |
+| Indonesian | `id_ID`, `id-ID`, `id`, `in_ID` | LibreOffice `dict-id` |
+| Bulgarian | `bg_BG`, `bg-BG`, `bg` | LibreOffice `dict-bg` |
+| Romanian | `ro_RO`, `ro-RO`, `ro` | LibreOffice `dict-ro` |
+| Slovenian | `sl_SI`, `sl-SI`, `sl` | LibreOffice `dict-sl` |
+| Albanian | `sq_AL`, `sq-AL`, `sq` | LibreOffice `dict-sq` |
+| Lithuanian | `lt_LT`, `lt-LT`, `lt` | LibreOffice `dict-lt` (its files are named `lt`) |
+| Bosnian | `bs_BA`, `bs-BA`, `bs` | LibreOffice `dict-bs` |
 
 Every Portuguese region uses the same `pt_BR` dictionary, so text marked *Português (Portugal)*
 is checked with it too.
@@ -139,6 +151,7 @@ Never commit dictionary files to this repository: they stay on the user's system
 | Date | Change | Summary |
 |---|---|---|
 | 2026-10-22 | minor | Spanish (#3360, #3553): the file names for Spain, Mexico, Latin America and Uruguay and their fallbacks |
+| 2026-10-20 | minor | Bulgarian, Romanian, Slovenian, Albanian, Lithuanian and Bosnian dictionaries: their file names and LibreOffice sources |
 | 2026-10-18 | trivial | ISO 8859-1 (`SET ISO8859-1`) dictionaries are read, so the original VERO `pt_BR` works without converting it to UTF-8 (#2824) |
 | 2026-10-18 | minor | An installed dictionary that can't be read shows **(dictionary unreadable)** in the status bar, with the file and reason in its tooltip and in File › Options › Proofing (#2830) |
 | 2026-10-16 | major | First version: the file names per language, the search order and folders on Windows, macOS and Linux, installing `pt_BR` on each, and how to check it works |

@@ -833,6 +833,12 @@ pub(crate) fn language_name(tag: Option<&str>) -> String {
             wordcraft_engine::proof::ProofLang::Id => "Indonesian".into(),
             wordcraft_engine::proof::ProofLang::Es => "Spanish (Spain)".into(),
             wordcraft_engine::proof::ProofLang::De => "German (Germany)".into(),
+            wordcraft_engine::proof::ProofLang::Bg => "Bulgarian".into(),
+            wordcraft_engine::proof::ProofLang::Ro => "Romanian".into(),
+            wordcraft_engine::proof::ProofLang::Sl => "Slovenian".into(),
+            wordcraft_engine::proof::ProofLang::Sq => "Albanian".into(),
+            wordcraft_engine::proof::ProofLang::Lt => "Lithuanian".into(),
+            wordcraft_engine::proof::ProofLang::Bs => "Bosnian".into(),
             wordcraft_engine::proof::ProofLang::En if tag.eq_ignore_ascii_case("en") => "English (United States)".into(),
             _ => tag.to_string(),
         },
@@ -3326,6 +3332,27 @@ mod tests {
         let c = language_checks("es-AR", |t| t.eq_ignore_ascii_case("es-AR"));
         assert_eq!(c.extra.as_deref(), Some("Spanish (Argentina)"));
         assert!(!c.listed.contains(&true));
+    }
+
+    #[test]
+    fn dictionary_only_languages_have_a_name_and_are_offered_in_set_proofing_language() {
+        for (tag, name, aliases) in [
+            ("bg-BG", "Bulgarian", ["bg", "BUL"]),
+            ("ro-RO", "Romanian", ["ro", "ron"]),
+            ("sl-SI", "Slovenian", ["sl", "slv"]),
+            ("sq-AL", "Albanian", ["sq", "sqi"]),
+            ("lt-LT", "Lithuanian", ["lt", "lit"]),
+            ("bs-BA", "Bosnian", ["bs", "bos"]),
+        ] {
+            // The short list stays short; Set Proofing Language… offers them.
+            assert!(crate::dialogs_layout::LANGUAGES.contains(&(tag, name)));
+            assert_eq!(language_name(Some(tag)), name);
+            for a in aliases {
+                assert_eq!(language_name(Some(a)), name, "{a}");
+                // Shown checked above the short list, once.
+                assert_eq!(language_checks(a, |_| false).extra.as_deref(), Some(name), "{a}");
+            }
+        }
     }
 
     #[test]
