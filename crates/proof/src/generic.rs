@@ -125,13 +125,20 @@ pub fn has_dictionary(lang: ProofLang) -> bool {
     !dictionary(lang).is_empty()
 }
 
-/// Is `word` spelled correctly in `lang`? Numbers, single letters, short words in capitals
-/// (acronyms), words with digits and words in another script are accepted, and so is every word
-/// when `lang` has no dictionary. A hyphenated word is correct when the dictionary has it whole
-/// or has each part.
+/// Is `word` spelled correctly in `lang`, with Word's default options? Numbers, single letters,
+/// short words in capitals (acronyms), words with digits and words in another script are
+/// accepted, and so is every word when `lang` has no dictionary. A hyphenated word is correct
+/// when the dictionary has it whole or has each part.
 pub fn is_correct(lang: ProofLang, word: &str) -> bool {
+    is_correct_with_options(lang, word, &crate::Options::default())
+}
+
+/// [`is_correct`] with the File › Options › Proofing choices: with Ignore words in UPPERCASE off,
+/// short words in capitals are checked against the dictionary too, and with Ignore words that
+/// contain numbers off, so are words with digits.
+pub fn is_correct_with_options(lang: ProofLang, word: &str, opts: &crate::Options) -> bool {
     match language(lang) {
-        Some(l) => is_correct_with(&dictionary(lang), l.script, word),
+        Some(l) => check(&dictionary(lang), l.script, word, opts),
         None => true,
     }
 }
@@ -139,16 +146,21 @@ pub fn is_correct(lang: ProofLang, word: &str) -> bool {
 /// [`is_correct`] against a given dictionary, whose letters `script` tells (an empty one accepts
 /// everything).
 pub fn is_correct_with(d: &AffixDict, script: fn(char) -> bool, word: &str) -> bool {
+    check(d, script, word, &crate::Options::default())
+}
+
+/// [`is_correct_with_options`] against a given dictionary.
+fn check(d: &AffixDict, script: fn(char) -> bool, word: &str, opts: &crate::Options) -> bool {
     if d.is_empty() {
         return true;
     }
     let w = word.trim_matches(|c: char| !c.is_alphanumeric() && c != '\'' && c != '’');
     let w = w.trim_matches(['\'', '’']);
     let n = w.chars().count();
-    if n <= 1 || w.chars().any(|c| c.is_ascii_digit()) || !w.chars().any(char::is_alphabetic) {
+    if n <= 1 || (opts.ignore_numbers && w.chars().any(|c| c.is_ascii_digit())) || !w.chars().any(char::is_alphabetic) {
         return true;
     }
-    if w.chars().all(|c| !c.is_lowercase()) && n <= 6 {
+    if opts.ignore_uppercase && w.chars().all(|c| !c.is_lowercase()) && n <= 6 {
         return true;
     }
     if !w.chars().any(script) {
@@ -256,6 +268,24 @@ mod tests {
         }
         crate::add_word("Zqcuvântmeu");
         assert!(is_correct(ProofLang::Ro, "zqcuvântmeu"));
+    }
+
+    /// With Ignore words in UPPERCASE or Ignore words that contain numbers off, the spelling-only
+    /// languages check those words against the dictionary instead of accepting them.
+    #[test]
+    fn proofing_options_reach_the_generic_check() {
+        test_dict::install();
+        let lang = ProofLang::Ro;
+        let defaults = crate::Options::default();
+        let check_caps = crate::Options { ignore_uppercase: false, ..defaults };
+        let check_digits = crate::Options { ignore_numbers: false, ..defaults };
+        assert!(crate::is_correct_in_with("CRATE", lang, &defaults), "short capitals are acronyms by default");
+        assert!(!crate::is_correct_in_with("CRATE", lang, &check_caps));
+        assert!(crate::is_correct_in_with("CARTE", lang, &check_caps));
+        assert!(crate::is_correct_in_with("crate2", lang, &defaults));
+        assert!(!crate::is_correct_in_with("crate2", lang, &check_digits));
+        assert!(crate::is_correct_in_with("2026", lang, &check_digits), "numbers alone stay correct");
+        assert!(is_correct(lang, "CRATE"), "direct checks keep the defaults");
     }
 
     #[test]

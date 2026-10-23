@@ -740,7 +740,7 @@ pub fn is_correct_in_with(word: &str, lang: ProofLang, opts: &Options) -> bool {
         ProofLang::Cs => accepted_by_options(word, opts) || cs::is_correct(word),
         ProofLang::Id => accepted_by_options(word, opts) || id::is_correct(word),
         ProofLang::Bg | ProofLang::Ro | ProofLang::Sl | ProofLang::Sq | ProofLang::Lt | ProofLang::Bs => {
-            accepted_by_options(word, opts) || generic::is_correct(lang, word)
+            accepted_by_options(word, opts) || generic::is_correct_with_options(lang, word, opts)
         }
         ProofLang::De | ProofLang::Other => true,
     }
