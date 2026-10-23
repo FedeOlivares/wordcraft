@@ -7,7 +7,8 @@ on:
 
 concurrency:
   group: sonarcloud-${{ github.ref }}
-  cancel-in-progress: true
+  # A push to main is the run that publishes coverage; superseded runs there would never finish.
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 permissions:
   contents: read
