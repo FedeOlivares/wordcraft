@@ -413,6 +413,7 @@ pub fn missing_dictionary(lang: Option<&str>) -> Option<&'static str> {
     match ProofLang::from_tag(lang) {
         ProofLang::Pl => dictionary_needed(ProofLang::Pl, pl::has_dictionary()),
         ProofLang::Pt => dictionary_needed(ProofLang::Pt, pt::has_dictionary()),
+        l if generic::language(l).is_some() => dictionary_needed(l, generic::has_dictionary(l)),
         _ => None,
     }
 }
@@ -425,6 +426,7 @@ pub fn unreadable_dictionary(lang: Option<&str>) -> Option<(&'static str, std::p
     let (proof_lang, loaded) = match ProofLang::from_tag(lang) {
         ProofLang::Pl => (ProofLang::Pl, pl::has_dictionary()),
         ProofLang::Pt => (ProofLang::Pt, pt::has_dictionary()),
+        l if generic::language(l).is_some() => (l, generic::has_dictionary(l)),
         _ => return None,
     };
     let name = dictionary_needed(proof_lang, false)?;
@@ -434,13 +436,14 @@ pub fn unreadable_dictionary(lang: Option<&str>) -> Option<(&'static str, std::p
     hunspell::load_error(name).map(|(file, reason)| (name, file, reason))
 }
 
-/// The Hunspell name `lang` needs when `installed` is false; only Polish and Portuguese use one.
+/// The Hunspell name `lang` needs when `installed` is false: Polish, Portuguese and the
+/// spelling-only languages of [`generic`] use one.
 fn dictionary_needed(lang: ProofLang, installed: bool) -> Option<&'static str> {
     match lang {
         _ if installed => None,
         ProofLang::Pl => Some("pl_PL"),
         ProofLang::Pt => Some("pt_BR"),
-        _ => None,
+        l => generic::language(l).map(|g| g.names[0]),
     }
 }
 
@@ -974,7 +977,11 @@ mod tests {
         assert_eq!(dictionary_needed(ProofLang::Pt, false), Some("pt_BR"));
         assert_eq!(dictionary_needed(ProofLang::Pl, true), None);
         assert_eq!(dictionary_needed(ProofLang::Pt, true), None);
-        for l in [ProofLang::En, ProofLang::Bg, ProofLang::De, ProofLang::Other] {
+        assert_eq!(dictionary_needed(ProofLang::Bg, false), Some("bg_BG"));
+        assert_eq!(dictionary_needed(ProofLang::Ro, false), Some("ro_RO"));
+        assert_eq!(dictionary_needed(ProofLang::Lt, false), Some("lt_LT"));
+        assert_eq!(dictionary_needed(ProofLang::Ro, true), None);
+        for l in [ProofLang::En, ProofLang::De, ProofLang::Other] {
             assert_eq!(dictionary_needed(l, false), None);
         }
         // Installed dictionaries and the built-in English list: no hint.
