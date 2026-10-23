@@ -427,18 +427,13 @@ pub fn has_dictionary(lang: Option<&str>) -> bool {
     ProofLang::from_tag(lang).is_proofed()
 }
 
-/// The Hunspell dictionary name (`pl_PL`, `pt_BR`) a proofing language needs but doesn't have
+/// The Hunspell dictionary name (`pl_PL`, `it_IT`) a proofing language needs but doesn't have
 /// installed, for a status-bar hint (#1167). `None` when the language's dictionary is available,
 /// or when it needs none (English has a built-in word list; unproofed languages aren't offered
 /// one). Reads the dictionary once (it is cached afterwards).
 pub fn missing_dictionary(lang: Option<&str>) -> Option<&'static str> {
-    match ProofLang::from_tag(lang) {
-        ProofLang::Pl => dictionary_needed(ProofLang::Pl, pl::has_dictionary()),
-        ProofLang::Pt => dictionary_needed(ProofLang::Pt, pt::has_dictionary()),
-        l if l.is_spanish() => dictionary_needed(l, es::has_dictionary(l)),
-        l if generic::language(l).is_some() => dictionary_needed(l, generic::has_dictionary(l)),
-        _ => None,
-    }
+    let lang = ProofLang::from_tag(lang);
+    dictionary_needed(lang, dictionary_loaded(lang)?)
 }
 
 /// The Hunspell name, `.dic` file and reason of a dictionary that is installed for this language
@@ -446,28 +441,41 @@ pub fn missing_dictionary(lang: Option<&str>) -> Option<&'static str> {
 /// loaded, or when no file exists (then [`missing_dictionary`] names it). Reads the dictionary
 /// once (it is cached afterwards).
 pub fn unreadable_dictionary(lang: Option<&str>) -> Option<(&'static str, std::path::PathBuf, String)> {
-    let (proof_lang, loaded) = match ProofLang::from_tag(lang) {
-        ProofLang::Pl => (ProofLang::Pl, pl::has_dictionary()),
-        ProofLang::Pt => (ProofLang::Pt, pt::has_dictionary()),
-        l if l.is_spanish() => (l, es::has_dictionary(l)),
-        l if generic::language(l).is_some() => (l, generic::has_dictionary(l)),
-        _ => return None,
-    };
-    let name = dictionary_needed(proof_lang, false)?;
-    if loaded {
-        return None;
-    }
+    let lang = ProofLang::from_tag(lang);
+    let name = dictionary_needed(lang, dictionary_loaded(lang)?)?;
     hunspell::load_error(name).map(|(file, reason)| (name, file, reason))
 }
 
-/// The Hunspell name `lang` needs when `installed` is false: Polish, Portuguese, Spanish (per
-/// variety: `es_ES`, `es_MX`, `es_419`, `es_UY`) and the spelling-only languages of [`generic`]
-/// use one.
+/// Did the Hunspell dictionary of `lang` load? `None` for languages that use none (English).
+fn dictionary_loaded(lang: ProofLang) -> Option<bool> {
+    Some(match lang {
+        ProofLang::Pl => pl::has_dictionary(),
+        ProofLang::Pt => pt::has_dictionary(),
+        ProofLang::It => it::has_dictionary(),
+        ProofLang::Hr => hr::has_dictionary(),
+        ProofLang::Tr => tr::has_dictionary(),
+        ProofLang::Ru => ru::has_dictionary(),
+        ProofLang::Cs => cs::has_dictionary(),
+        ProofLang::Id => id::has_dictionary(),
+        l if l.is_spanish() => es::has_dictionary(l),
+        l if generic::language(l).is_some() => generic::has_dictionary(l),
+        _ => return None,
+    })
+}
+
+/// The Hunspell name `lang` needs when `installed` is false (the first name its module looks for;
+/// a Spanish variety's is its own: `es_ES`, `es_MX`, `es_419`, `es_UY`).
 fn dictionary_needed(lang: ProofLang, installed: bool) -> Option<&'static str> {
     match lang {
         _ if installed => None,
         ProofLang::Pl => Some("pl_PL"),
         ProofLang::Pt => Some("pt_BR"),
+        ProofLang::It => Some("it_IT"),
+        ProofLang::Hr => Some("hr_HR"),
+        ProofLang::Tr => Some("tr_TR"),
+        ProofLang::Ru => Some("ru_RU"),
+        ProofLang::Cs => Some("cs_CZ"),
+        ProofLang::Id => Some("id_ID"),
         l if l.is_spanish() => Some(es::dictionary_name(l)),
         l => generic::language(l).map(|g| g.names[0]),
     }
@@ -1032,15 +1040,31 @@ mod tests {
         assert_eq!(dictionary_needed(ProofLang::Pt, false), Some("pt_BR"));
         assert_eq!(dictionary_needed(ProofLang::Pl, true), None);
         assert_eq!(dictionary_needed(ProofLang::Pt, true), None);
-        // #3360: each Spanish variety names its own.
-        for (l, name) in [(ProofLang::Es, "es_ES"), (ProofLang::EsMx, "es_MX"), (ProofLang::Es419, "es_419"), (ProofLang::EsUy, "es_UY")] {
-            assert_eq!(dictionary_needed(l, false), Some(name));
-            assert_eq!(dictionary_needed(l, true), None);
+        // Every Hunspell language is named by the first name its module looks for (#3150).
+        for (l, name) in [
+            (ProofLang::It, "it_IT"),
+            (ProofLang::Hr, "hr_HR"),
+            (ProofLang::Tr, "tr_TR"),
+            (ProofLang::Ru, "ru_RU"),
+            (ProofLang::Cs, "cs_CZ"),
+            (ProofLang::Id, "id_ID"),
+            (ProofLang::Bg, "bg_BG"),
+            (ProofLang::Ro, "ro_RO"),
+            (ProofLang::Lt, "lt_LT"),
+            // #3360: each Spanish variety names its own.
+            (ProofLang::Es, "es_ES"),
+            (ProofLang::EsMx, "es_MX"),
+            (ProofLang::Es419, "es_419"),
+            (ProofLang::EsUy, "es_UY"),
+        ] {
+            assert_eq!(dictionary_needed(l, false), Some(name), "{l:?}");
+            assert_eq!(dictionary_needed(l, true), None, "{l:?}");
         }
-        assert_eq!(dictionary_needed(ProofLang::Bg, false), Some("bg_BG"));
-        assert_eq!(dictionary_needed(ProofLang::Ro, false), Some("ro_RO"));
-        assert_eq!(dictionary_needed(ProofLang::Lt, false), Some("lt_LT"));
-        assert_eq!(dictionary_needed(ProofLang::Ro, true), None);
+        // Every proofed language other than English has a Hunspell dictionary to report.
+        for l in ProofLang::PROOFED {
+            let english = matches!(l, ProofLang::En | ProofLang::EnGb | ProofLang::EnCa);
+            assert_eq!(dictionary_needed(l, false).is_some(), !english, "{l:?}");
+        }
         for l in [ProofLang::En, ProofLang::De, ProofLang::Other] {
             assert_eq!(dictionary_needed(l, false), None);
         }
