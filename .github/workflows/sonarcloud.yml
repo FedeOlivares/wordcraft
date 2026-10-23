@@ -19,4 +19,5 @@ jobs:
     uses: storytold/craft-common-actions/.github/workflows/sonarcloud.yml@main
     with:
       project-key: FedeOlivares_wordcraft-test
-    secrets: inherit
+    secrets:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
